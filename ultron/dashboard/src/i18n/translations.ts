@@ -25,6 +25,7 @@ const en: Dict = {
     leaderboard: 'Leaderboard',
     quickstart: 'Quickstart',
     harness: 'HarnessHub',
+    router: 'Router',
     github: 'Ultron on GitHub',
   },
   auth: {
@@ -261,6 +262,7 @@ const zh: Dict = {
     leaderboard: '排行榜',
     quickstart: '快速开始',
     harness: 'HarnessHub',
+    router: 'Router',
     github: 'Ultron GitHub 仓库',
   },
   auth: {

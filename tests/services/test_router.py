@@ -147,6 +147,89 @@ class TestRouterService(unittest.TestCase):
         self.assertEqual(kwargs["max_tokens"], 8)
         self.assertEqual(kwargs["temperature"], 0.2)
 
+    def test_settings_file_overrides_config(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        with open(os.path.join(tmp.name, "router_config.json"), "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "enabled": True,
+                    "model": "persisted-model",
+                    "base_url": "https://example.test/v1",
+                    "api_key": "persisted-key",
+                },
+                f,
+            )
+        cfg = UltronConfig(data_dir=tmp.name)
+        cfg.router_enabled = False
+        db = Database(os.path.join(tmp.name, "test.db"))
+        svc = RouterService(db=db, config=cfg)
+        settings = svc.get_settings()
+        self.assertTrue(settings["enabled"])
+        self.assertEqual(settings["model"], "persisted-model")
+        self.assertEqual(settings["base_url"], "https://example.test/v1")
+        self.assertTrue(settings["has_api_key"])
+        self.assertNotIn("api_key", settings)
+
+    def test_update_settings_redacts_and_persists_api_key(self):
+        svc, _db, tmp = self._svc(enabled=False)
+        settings = svc.update_settings(
+            {
+                "enabled": True,
+                "model": "new-model",
+                "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                "api_key": "secret-key",
+            }
+        )
+        self.assertTrue(settings["enabled"])
+        self.assertTrue(settings["has_api_key"])
+        self.assertNotIn("api_key", settings)
+        with open(os.path.join(tmp, "router_config.json"), encoding="utf-8") as f:
+            raw = json.load(f)
+        self.assertEqual(raw["api_key"], "secret-key")
+
+    @patch("ultron.services.router.HAS_OPENAI", True)
+    @patch("ultron.services.router.OpenAI")
+    def test_model_call_uses_persisted_api_key(self, mock_openai):
+        svc, _db, _tmp = self._svc(enabled=True)
+        svc.update_settings({"api_key": "configured-key", "base_url": "https://example.test/v1"})
+        svc._get_client()
+        mock_openai.assert_called_with(
+            api_key="configured-key",
+            base_url="https://example.test/v1",
+        )
+
+    def test_openai_chat_completions_maps_to_model_call(self):
+        svc, _db, _tmp = self._svc(enabled=True)
+        with patch.object(svc, "_call_model", return_value="hello") as call:
+            payload, status = svc.openai_chat_completions(
+                {
+                    "model": "openai-format-model",
+                    "messages": [{"role": "user", "content": "hi"}],
+                    "temperature": 0.3,
+                    "max_tokens": 32,
+                    "stream": False,
+                }
+            )
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["object"], "chat.completion")
+        self.assertEqual(payload["model"], "openai-format-model")
+        self.assertEqual(payload["choices"][0]["message"]["content"], "hello")
+        self.assertEqual(call.call_args.kwargs["max_output_tokens"], 32)
+        self.assertEqual(call.call_args.kwargs["temperature"], 0.3)
+
+    def test_openai_chat_completions_rejects_streaming(self):
+        svc, _db, _tmp = self._svc(enabled=True)
+        payload, status = svc.openai_chat_completions(
+            {
+                "model": "m",
+                "messages": [{"role": "user", "content": "hi"}],
+                "stream": True,
+            }
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(payload["error"]["code"], "streaming_unsupported")
+
 
 if __name__ == "__main__":
     unittest.main()

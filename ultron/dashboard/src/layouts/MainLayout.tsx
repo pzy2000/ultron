@@ -28,6 +28,7 @@ export default function MainLayout() {
               <NavLink to="/leaderboard" className={linkClass}>{t('nav.leaderboard')}</NavLink>
               <NavLink to="/quickstart" className={linkClass}>{t('nav.quickstart')}</NavLink>
               <NavLink to="/harness" className={linkClass}>{t('nav.harness')}</NavLink>
+              <NavLink to="/router" className={linkClass}>{t('nav.router')}</NavLink>
             </div>
           </div>
           <div className="flex items-center gap-4 translate-y-[2px]">

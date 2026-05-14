@@ -67,6 +67,13 @@ class RouterCompleteRequest(BaseModel):
     )
 
 
+class RouterSettingsRequest(BaseModel):
+    enabled: Optional[bool] = Field(None, description="Enable or disable router calls")
+    model: Optional[str] = Field(None, description="Default router model name")
+    base_url: Optional[str] = Field(None, description="OpenAI-compatible API base URL")
+    api_key: Optional[str] = Field(None, description="Write-only router API key")
+
+
 class SearchSkillsRequest(BaseModel):
     query: str = Field(..., description="Natural language query")
     limit: Optional[int] = Field(

@@ -355,12 +355,13 @@ class UltronConfig:
     )
     router_base_url: str = field(
         default_factory=lambda: os.environ.get(
-            "ULTRON_ROUTER_BASE_URL", "http://127.0.0.1:8000/v1"
+            "ULTRON_ROUTER_BASE_URL",
+            "https://dashscope.aliyuncs.com/compatible-mode/v1",
         ).strip()
     )
     router_model: str = field(
         default_factory=lambda: os.environ.get(
-            "ULTRON_ROUTER_MODEL", "Qwen/Qwen3-1.7B"
+            "ULTRON_ROUTER_MODEL", "qwen3.6-plus"
         ).strip()
     )
     router_api_key: str = field(

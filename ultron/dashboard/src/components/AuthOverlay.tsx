@@ -4,14 +4,15 @@ import { useAuth } from '../hooks/useAuth';
 import { useLocale } from '../contexts/LocaleContext';
 import LocaleToggle from './LocaleToggle';
 
-/** Login is required only on HarnessHub; other routes are usable without an account. */
-function isHarnessPath(pathname: string) {
-  return pathname === '/harness' || pathname.startsWith('/harness/');
+/** Login is required for routes that mutate server-side user/operator state. */
+function requiresAuth(pathname: string) {
+  return pathname === '/harness' || pathname.startsWith('/harness/')
+    || pathname === '/router' || pathname.startsWith('/router/');
 }
 
 export default function AuthOverlay() {
   const { pathname } = useLocation();
-  const needsHarnessAuth = isHarnessPath(pathname);
+  const needsAuth = requiresAuth(pathname);
   const { t } = useLocale();
   const { user, loading, login, register } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -20,7 +21,7 @@ export default function AuthOverlay() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  if (!needsHarnessAuth) return null;
+  if (!needsAuth) return null;
 
   if (loading) {
     return (

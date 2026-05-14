@@ -244,6 +244,107 @@ class TestUltronServerRoutes(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()["used_trajectory"])
 
+    def test_router_settings_get_redacts_key(self):
+        self.mock_ultron.router_service.get_settings.return_value = {
+            "enabled": True,
+            "model": "qwen3.6-plus",
+            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "has_api_key": True,
+        }
+        r = self.client.get("/router/settings")
+        self.assertEqual(r.status_code, 200)
+        data = r.json()["data"]
+        self.assertTrue(data["has_api_key"])
+        self.assertNotIn("api_key", data)
+
+    def test_router_settings_post_requires_auth(self):
+        r = self.client.post(
+            "/router/settings",
+            json={"enabled": True, "model": "qwen3.6-plus"},
+        )
+        self.assertEqual(r.status_code, 401)
+
+    def test_router_settings_post_persists_with_auth(self):
+        import ultron.server_state as st
+
+        auth = MagicMock()
+        auth.decode_token.return_value = "user1"
+        self.mock_ultron.db.get_user_by_username.return_value = {
+            "username": "user1",
+            "created_at": "now",
+        }
+        self.mock_ultron.router_service.update_settings.return_value = {
+            "enabled": True,
+            "model": "qwen3.6-plus",
+            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "has_api_key": True,
+        }
+        with patch.object(st, "auth_service", auth):
+            r = self.client.post(
+                "/router/settings",
+                headers={"Authorization": "Bearer token"},
+                json={
+                    "enabled": True,
+                    "model": "qwen3.6-plus",
+                    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                    "api_key": "secret-key",
+                },
+            )
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json()["data"]["has_api_key"])
+        self.mock_ultron.router_service.update_settings.assert_called_once()
+
+    def test_openai_chat_completions_success(self):
+        self.mock_ultron.router_service.openai_chat_completions.return_value = (
+            {
+                "id": "chatcmpl-test",
+                "object": "chat.completion",
+                "created": 1,
+                "model": "qwen3.6-plus",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": "ok"},
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+            },
+            200,
+        )
+        r = self.client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "qwen3.6-plus",
+                "messages": [{"role": "user", "content": "hi"}],
+            },
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["choices"][0]["message"]["content"], "ok")
+
+    def test_openai_chat_completions_stream_rejected(self):
+        self.mock_ultron.router_service.openai_chat_completions.return_value = (
+            {
+                "error": {
+                    "message": "non-streaming only",
+                    "type": "invalid_request_error",
+                    "param": "stream",
+                    "code": "streaming_unsupported",
+                }
+            },
+            400,
+        )
+        r = self.client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "qwen3.6-plus",
+                "messages": [{"role": "user", "content": "hi"}],
+                "stream": True,
+            },
+        )
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.json()["error"]["code"], "streaming_unsupported")
+
     def test_skills_search(self):
         skill = _sample_skill()
         rr = RetrievalResult(

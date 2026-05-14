@@ -5,6 +5,7 @@ import SkillsPage from './pages/SkillsPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import QuickstartPage from './pages/QuickstartPage';
 import HarnessPage from './pages/HarnessPage';
+import RouterPage from './pages/RouterPage';
 import { AuthProvider } from './hooks/useAuth';
 import { LocaleProvider } from './contexts/LocaleContext';
 
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
       { path: 'leaderboard', element: <LeaderboardPage /> },
       { path: 'quickstart', element: <QuickstartPage /> },
       { path: 'harness', element: <HarnessPage /> },
+      { path: 'router', element: <RouterPage /> },
     ],
   },
 ]);

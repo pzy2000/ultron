@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import logging
 import time
+import uuid
+from pathlib import Path
 from typing import Any, Optional
 
 from ..config import UltronConfig, default_config
@@ -30,6 +32,8 @@ class RouterService:
         self._client = None
         self._client_key = ""
         self._client_base_url = ""
+        self._settings_path = Path(self.config.data_dir) / "router_config.json"
+        self._load_persisted_settings()
 
     def health(self) -> dict:
         return {
@@ -37,7 +41,39 @@ class RouterService:
             "model": getattr(self.config, "router_model", ""),
             "base_url": getattr(self.config, "router_base_url", ""),
             "has_openai": HAS_OPENAI,
+            "has_api_key": bool((getattr(self.config, "router_api_key", "") or "").strip()),
         }
+
+    def get_settings(self) -> dict:
+        """Return redacted runtime router settings."""
+        return {
+            "enabled": bool(getattr(self.config, "router_enabled", False)),
+            "model": getattr(self.config, "router_model", ""),
+            "base_url": getattr(self.config, "router_base_url", ""),
+            "has_api_key": bool((getattr(self.config, "router_api_key", "") or "").strip()),
+        }
+
+    def update_settings(self, settings: dict[str, Any]) -> dict:
+        """Persist runtime router settings. ``api_key`` is write-only."""
+        if not isinstance(settings, dict):
+            raise ValueError("settings must be an object")
+        if "enabled" in settings:
+            self.config.router_enabled = bool(settings.get("enabled"))
+        if "model" in settings:
+            model = str(settings.get("model", "")).strip()
+            if not model:
+                raise ValueError("model cannot be empty")
+            self.config.router_model = model
+        if "base_url" in settings:
+            base_url = str(settings.get("base_url", "")).strip()
+            if not base_url:
+                raise ValueError("base_url cannot be empty")
+            self.config.router_base_url = base_url
+        if "api_key" in settings and settings.get("api_key") is not None:
+            self.config.router_api_key = str(settings.get("api_key", "")).strip()
+        self._client = None
+        self._persist_settings()
+        return self.get_settings()
 
     def complete(
         self,
@@ -132,6 +168,67 @@ class RouterService:
             success=True,
             used_trajectory=used_trajectory,
         )
+
+    def openai_chat_completions(self, request: dict[str, Any]) -> tuple[dict, int]:
+        """Handle a non-streaming OpenAI-compatible chat completions request."""
+        if not isinstance(request, dict):
+            return {"error": {"message": "request body must be an object"}}, 400
+        if request.get("stream") is True:
+            return {
+                "error": {
+                    "message": "Ultron router OpenAI compatibility supports non-streaming requests only.",
+                    "type": "invalid_request_error",
+                    "param": "stream",
+                    "code": "streaming_unsupported",
+                }
+            }, 400
+        messages = request.get("messages", [])
+        model = str(request.get("model", "") or "").strip()
+        old_model = getattr(self.config, "router_model", "")
+        if model:
+            self.config.router_model = model
+        try:
+            result = self.complete(
+                mode="direct",
+                messages=messages,
+                router_info={"source": "openai_chat_completions"},
+                max_output_tokens=request.get("max_tokens"),
+                temperature=request.get("temperature"),
+            )
+        finally:
+            if model:
+                self.config.router_model = old_model
+        if not result.get("success"):
+            return {
+                "error": {
+                    "message": result.get("error", "Router request failed"),
+                    "type": "router_error",
+                    "param": None,
+                    "code": "router_failed",
+                }
+            }, 400
+        now = int(time.time())
+        return {
+            "id": f"chatcmpl-{uuid.uuid4().hex}",
+            "object": "chat.completion",
+            "created": now,
+            "model": model or result.get("model", getattr(self.config, "router_model", "")),
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": result.get("output", ""),
+                    },
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+            },
+        }, 200
 
     def _result(
         self,
@@ -243,6 +340,40 @@ class RouterService:
             self._client_key = key
             self._client_base_url = base_url
         return self._client
+
+    def _load_persisted_settings(self) -> None:
+        if not self._settings_path.is_file():
+            return
+        try:
+            raw = json.loads(self._settings_path.read_text(encoding="utf-8"))
+            if not isinstance(raw, dict):
+                return
+        except (OSError, ValueError):
+            logger.warning("Could not read router settings from %s", self._settings_path)
+            return
+        if "enabled" in raw:
+            self.config.router_enabled = bool(raw.get("enabled"))
+        model = str(raw.get("model", "")).strip()
+        if model:
+            self.config.router_model = model
+        base_url = str(raw.get("base_url", "")).strip()
+        if base_url:
+            self.config.router_base_url = base_url
+        if "api_key" in raw and raw.get("api_key") is not None:
+            self.config.router_api_key = str(raw.get("api_key", "")).strip()
+
+    def _persist_settings(self) -> None:
+        payload = {
+            "enabled": bool(getattr(self.config, "router_enabled", False)),
+            "model": getattr(self.config, "router_model", ""),
+            "base_url": getattr(self.config, "router_base_url", ""),
+            "api_key": getattr(self.config, "router_api_key", ""),
+        }
+        self._settings_path.parent.mkdir(parents=True, exist_ok=True)
+        self._settings_path.write_text(
+            json.dumps(payload, ensure_ascii=True, indent=2),
+            encoding="utf-8",
+        )
 
     def _call_model(
         self,

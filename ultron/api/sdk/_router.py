@@ -7,6 +7,14 @@ class RouterMixin:
         """Return model-router availability and configuration summary."""
         return self.router_service.health()
 
+    def router_settings(self) -> dict:
+        """Return redacted runtime router settings."""
+        return self.router_service.get_settings()
+
+    def update_router_settings(self, settings: dict[str, Any]) -> dict:
+        """Persist runtime router settings. ``api_key`` is write-only."""
+        return self.router_service.update_settings(settings)
+
     def router_complete(
         self,
         *,
