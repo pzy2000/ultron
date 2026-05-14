@@ -14,6 +14,7 @@ from ultron.api.routers import auth as auth_router
 from ultron.api.routers import dashboard as dashboard_router
 from ultron.api.routers import harness as harness_router
 from ultron.api.routers import memory as memory_router
+from ultron.api.routers import router as router_router
 from ultron.api.routers import skills as skills_router
 from ultron.api.routers import system as system_router
 from ultron.core.logging import setup_logging, set_trace_id, log_event
@@ -59,6 +60,7 @@ server_state.evolution_engine = SkillEvolutionEngine(
 )
 
 server_state.trajectory_service = _u.trajectory_service
+server_state.router_service = _u.router_service
 server_state.sft_trainer = SFTTrainerService(
     db=_u.db,
     sft_exporter=_u.trajectory_service.sft_exporter,
@@ -145,6 +147,7 @@ app.include_router(memory_router.router)
 app.include_router(skills_router.router)
 app.include_router(auth_router.router)
 app.include_router(harness_router.router)
+app.include_router(router_router.router)
 app.include_router(dashboard_router.router)
 
 if __name__ == "__main__":

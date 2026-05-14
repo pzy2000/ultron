@@ -145,6 +145,29 @@ class TestUltronMemoryMixin(unittest.TestCase):
         self.assertTrue(result["success"])
 
 
+class TestUltronRouterMixin(unittest.TestCase):
+    def _make_ultron(self):
+        u = object.__new__(Ultron)
+        u.router_service = MagicMock()
+        return u
+
+    def test_router_health_delegates(self):
+        u = self._make_ultron()
+        u.router_service.health.return_value = {"enabled": False}
+        self.assertFalse(u.router_health()["enabled"])
+        u.router_service.health.assert_called_once()
+
+    def test_router_complete_delegates(self):
+        u = self._make_ultron()
+        u.router_service.complete.return_value = {"success": True, "output": "ok"}
+        result = u.router_complete(
+            mode="direct",
+            messages=[{"role": "user", "content": "hi"}],
+        )
+        self.assertTrue(result["success"])
+        u.router_service.complete.assert_called_once()
+
+
 class TestUltronSkillMixin(unittest.TestCase):
     def _make_ultron(self):
         u = object.__new__(Ultron)

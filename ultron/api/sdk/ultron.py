@@ -22,10 +22,12 @@ from ...utils.skill_parser import SkillParser
 from ._core import CoreMixin
 from ._harness import HarnessMixin
 from ._memory import MemoryMixin
+from ._router import RouterMixin
 from ._skills import SkillMixin
+from ...services.router import RouterService
 
 
-class Ultron(MemoryMixin, SkillMixin, HarnessMixin, CoreMixin):
+class Ultron(MemoryMixin, SkillMixin, HarnessMixin, RouterMixin, CoreMixin):
     """
     Ultron: collective intelligence system for assistant ecosystems (OpenClaw, Nanobot, etc.).
 
@@ -140,6 +142,11 @@ class Ultron(MemoryMixin, SkillMixin, HarnessMixin, CoreMixin):
             llm_orchestrator=self.llm_orchestrator,
             memory_service=self.memory_service,
             config=self.config,
+        )
+        self.router_service = RouterService(
+            db=self.db,
+            config=self.config,
+            session_reader=self.trajectory_service._session_reader,
         )
 
         self.ingestion_service = IngestionService(

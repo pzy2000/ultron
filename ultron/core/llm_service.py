@@ -10,6 +10,7 @@ try:
     from openai import OpenAI
     HAS_OPENAI = True
 except ImportError:
+    OpenAI = None
     HAS_OPENAI = False
 
 from ..utils.token_budget import get_token_counter

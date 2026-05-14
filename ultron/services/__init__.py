@@ -7,6 +7,7 @@ from .skill import (
 )
 from .memory import MemoryService, MemorySearchResult
 from .ingestion import IngestionService
+from .router import RouterService
 from ..utils.llm_orchestrator import LLMOrchestrator
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "MemoryService",
     "MemorySearchResult",
     "IngestionService",
+    "RouterService",
     "LLMOrchestrator",
 ]

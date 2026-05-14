@@ -187,6 +187,63 @@ class TestUltronServerRoutes(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json().get("success"))
 
+    def test_router_health(self):
+        self.mock_ultron.router_health.return_value = {
+            "enabled": False,
+            "model": "Qwen/Qwen3-1.7B",
+            "base_url": "http://127.0.0.1:8000/v1",
+            "has_openai": True,
+        }
+        r = self.client.get("/router/health")
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertTrue(data.get("success"))
+        self.assertFalse(data["data"]["enabled"])
+
+    def test_router_complete_direct(self):
+        self.mock_ultron.router_complete.return_value = {
+            "success": True,
+            "mode": "direct",
+            "output": "ok",
+            "model": "Qwen/Qwen3-1.7B",
+            "latency_ms": 1.0,
+            "used_trajectory": False,
+            "error": "",
+        }
+        r = self.client.post(
+            "/router/complete",
+            json={
+                "mode": "direct",
+                "messages": [{"role": "user", "content": "hi"}],
+                "router_info": {"route": "simple"},
+            },
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json()["success"])
+        self.assertEqual(r.json()["output"], "ok")
+        self.mock_ultron.router_complete.assert_called_once()
+
+    def test_router_complete_trajectory(self):
+        self.mock_ultron.router_complete.return_value = {
+            "success": True,
+            "mode": "trajectory_experience",
+            "output": "lesson",
+            "model": "Qwen/Qwen3-1.7B",
+            "latency_ms": 1.0,
+            "used_trajectory": True,
+            "error": "",
+        }
+        r = self.client.post(
+            "/router/complete",
+            json={
+                "mode": "trajectory_experience",
+                "messages": [{"role": "user", "content": "extract"}],
+                "trajectory_ref": {"segment_id": "seg-1"},
+            },
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json()["used_trajectory"])
+
     def test_skills_search(self):
         skill = _sample_skill()
         rr = RetrievalResult(

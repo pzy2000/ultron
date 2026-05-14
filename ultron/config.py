@@ -349,6 +349,24 @@ class UltronConfig:
         default_factory=lambda: os.environ.get("ULTRON_SFT_SYSTEM_PROMPT", "")
     )
 
+    # Model router (callable Ultron function, not an assistant provider)
+    router_enabled: bool = field(
+        default_factory=lambda: _env_bool("ULTRON_ROUTER_ENABLED", False),
+    )
+    router_base_url: str = field(
+        default_factory=lambda: os.environ.get(
+            "ULTRON_ROUTER_BASE_URL", "http://127.0.0.1:8000/v1"
+        ).strip()
+    )
+    router_model: str = field(
+        default_factory=lambda: os.environ.get(
+            "ULTRON_ROUTER_MODEL", "Qwen/Qwen3-1.7B"
+        ).strip()
+    )
+    router_api_key: str = field(
+        default_factory=lambda: os.environ.get("ULTRON_ROUTER_API_KEY", "").strip()
+    )
+
     # --- Skill evolution (cluster crystallization) ---
     evolution_enabled: bool = field(
         default_factory=lambda: _env_bool("ULTRON_EVOLUTION_ENABLED", True),

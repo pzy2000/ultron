@@ -78,6 +78,7 @@ def main():
                 "get_memory_details",
                 "memory_stats",
                 "ingest", "ingest_text",
+                "router_complete", "router_experience",
             ]
         }, ensure_ascii=False, indent=2))
         sys.exit(1)
@@ -186,6 +187,36 @@ def main():
                     "text": text,
                 })
 
+        elif action == "router_complete":
+            messages = params.get("messages", [])
+            if not messages:
+                result = {"success": False, "error": "router_complete requires messages param"}
+            else:
+                result = api_request("POST", "/router/complete", {
+                    "mode": "direct",
+                    "messages": messages,
+                    "router_info": params.get("router_info", {}),
+                    "max_output_tokens": params.get("max_output_tokens"),
+                    "temperature": params.get("temperature"),
+                })
+
+        elif action == "router_experience":
+            messages = params.get("messages", [])
+            trajectory_ref = params.get("trajectory_ref")
+            if not messages:
+                result = {"success": False, "error": "router_experience requires messages param"}
+            elif not trajectory_ref:
+                result = {"success": False, "error": "router_experience requires trajectory_ref param"}
+            else:
+                result = api_request("POST", "/router/complete", {
+                    "mode": "trajectory_experience",
+                    "messages": messages,
+                    "router_info": params.get("router_info", {}),
+                    "trajectory_ref": trajectory_ref,
+                    "max_output_tokens": params.get("max_output_tokens"),
+                    "temperature": params.get("temperature"),
+                })
+
         else:
             result = {
                 "success": False,
@@ -198,6 +229,7 @@ def main():
                     "get_memory_details",
                     "memory_stats",
                     "ingest", "ingest_text",
+                    "router_complete", "router_experience",
                 ]
             }
     

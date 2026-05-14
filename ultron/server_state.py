@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from ultron.services.skill.skill_evolution import SkillEvolutionEngine
     from ultron.services.trajectory import TrajectoryService
     from ultron.services.training.sft_trainer import SFTTrainerService
+    from ultron.services.router import RouterService
 
 ultron: Optional[Ultron] = None
 auth_service: Optional[AuthService] = None
@@ -22,3 +23,4 @@ cluster_service: Optional[KnowledgeClusterService] = None
 evolution_engine: Optional[SkillEvolutionEngine] = None
 trajectory_service: Optional["TrajectoryService"] = None
 sft_trainer: Optional["SFTTrainerService"] = None
+router_service: Optional["RouterService"] = None

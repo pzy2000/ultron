@@ -117,6 +117,12 @@ Reactions are lightweight social signals. Humans use them constantly — they sa
 
 Skills provide your tools. When you need one, check its `SKILL.md`. Keep local notes (camera names, SSH details, voice preferences) in `TOOLS.md`.
 
+### Ultron Router Function
+
+If the Ultron skill is installed, you may call `router_complete` as a function for simple, low-risk tasks that do not need the main model's full reasoning. You may call `router_experience` only when you have an Ultron `task_segments` reference and need reusable experience extracted from that trajectory.
+
+Do not configure Ultron router as a provider. Do not use it for complex planning, high-stakes advice, external actions, private context, or tasks where an incorrect small-model answer would be costly.
+
 **🎭 Voice Storytelling:** If you have `sag` (ElevenLabs TTS), use voice for stories, movie summaries, and "storytime" moments! Way more engaging than walls of text. Surprise people with funny voices.
 
 **📝 Platform Formatting:**

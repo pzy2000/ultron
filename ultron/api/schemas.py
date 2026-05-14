@@ -1,5 +1,5 @@
 # Copyright (c) ModelScope Contributors. All rights reserved.
-from typing import List, Literal, Optional
+from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -41,6 +41,30 @@ class IngestRequest(BaseModel):
 
 class IngestTextRequest(BaseModel):
     text: str = Field(..., description="Raw text content")
+
+
+class RouterMessage(BaseModel):
+    role: Literal["system", "user", "assistant", "tool"] = Field(
+        ..., description="OpenAI-style message role"
+    )
+    content: Any = Field("", description="Message content")
+
+
+class RouterCompleteRequest(BaseModel):
+    mode: Literal["direct", "trajectory_experience"] = Field(
+        "direct", description="Router mode"
+    )
+    messages: List[RouterMessage] = Field(..., description="OpenAI-style messages")
+    router_info: dict = Field({}, description="Free-form router metadata")
+    trajectory_ref: Optional[dict] = Field(
+        None, description="task_segments reference for trajectory_experience mode"
+    )
+    max_output_tokens: Optional[int] = Field(
+        None, description="Optional max output tokens for the router model"
+    )
+    temperature: Optional[float] = Field(
+        None, description="Optional sampling temperature for the router model"
+    )
 
 
 class SearchSkillsRequest(BaseModel):

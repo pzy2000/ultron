@@ -28,6 +28,7 @@ from .core.llm_service import LLMService
 from .utils.llm_orchestrator import LLMOrchestrator
 from .services.ingestion import IngestionService
 from .services.trajectory import TrajectoryService
+from .services.router import RouterService
 
 __all__ = [
     "Ultron",
@@ -53,4 +54,5 @@ __all__ = [
     "LLMOrchestrator",
     "IngestionService",
     "TrajectoryService",
+    "RouterService",
 ]

@@ -301,6 +301,28 @@ class _TrajectoryMixin:
             )
             return [self._row_to_seg_dict(r) for r in cur.fetchall()]
 
+    def get_task_segment(self, segment_id: str) -> Optional[dict]:
+        """Return one task segment by id, or None."""
+        with self._get_connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM task_segments WHERE id=? LIMIT 1",
+                (segment_id or "",),
+            ).fetchone()
+        return self._row_to_seg_dict(row) if row else None
+
+    def get_task_segment_by_ref(
+        self, agent_id: str, session_file: str, segment_index: int
+    ) -> Optional[dict]:
+        """Return one task segment by agent/session/index, or None."""
+        with self._get_connection() as conn:
+            row = conn.execute(
+                """SELECT * FROM task_segments
+                WHERE agent_id=? AND session_file=? AND segment_index=?
+                LIMIT 1""",
+                (agent_id or "", session_file or "", int(segment_index)),
+            ).fetchone()
+        return self._row_to_seg_dict(row) if row else None
+
     def get_unlabeled_segments(self, limit: int) -> List[dict]:
         with self._get_connection() as conn:
             cur = conn.cursor()

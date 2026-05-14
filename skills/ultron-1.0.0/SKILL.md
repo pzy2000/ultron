@@ -14,6 +14,12 @@ Three core functions:
 2. **Skill Hub**: Semantic search (with intent analysis), distillation from high-frequency memories
 3. **Smart Ingestion**: Pass file paths or text → LLM extracts memories + optionally generates skills
 
+Optional router function:
+
+- Use `router_complete` only for simple, low-risk tasks where a small Ultron-owned model can answer directly.
+- Use `router_experience` when you have a `task_segments` reference and need concise reusable experience extracted from Ultron trajectory history.
+- Do not treat the router as a provider or general replacement model. Complex tasks, high-stakes advice, external actions, and private context stay with the main assistant model.
+
 ## On Every User Request: Retrieve Remote Memory & Skills First
 
 Whenever the user makes a new request that requires thinking or action, **first** retrieve collective memory and skills from Ultron, then proceed. Pure small talk can be skipped.
@@ -48,6 +54,8 @@ python3 skills/ultron-1.0.0/scripts/ultron_client.py '{"action":"<action>", ...}
 | `get_memory_details` | `memory_ids` | Fetch full text (full) by ID |
 | `ingest` | `paths`, `agent_id` | Pass file/directory paths, LLM auto-extracts memories |
 | `ingest_text` | `text` | Pass raw text, LLM extracts memories |
+| `router_complete` | `messages` | Function-call Ultron router for simple direct tasks |
+| `router_experience` | `messages`, `trajectory_ref` | Function-call router using an Ultron task segment reference |
 
 ## L0/L1/Full Layering
 
